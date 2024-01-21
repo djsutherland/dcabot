@@ -1,0 +1,51 @@
+# ignore whitespace
+%import common.WS_INLINE
+%ignore WS_INLINE
+
+
+# want to handle positive integers specially, don't use stuff from common
+POSDIGIT: "1".."9"
+DIGIT: "0" | POSDIGIT
+POSINT: "0"* POSDIGIT DIGIT*
+NATURAL: "0"+ | POSINT
+
+DECIMAL: NATURAL "." NATURAL? | "." NATURAL
+
+
+?start: list
+      | "`" list "`"
+      | "```" "\n"* list "\n"* "```"
+
+?list: ( sum (","|";"|"\n")+ )* sum
+
+PLUSMINUS: "+" | "-"
+?sum: (product PLUSMINUS)* product
+
+PRODDIV: "*" | "/"
+?product: (maybeneg PRODDIV )* maybeneg
+
+?maybeneg: atom
+         | "-" atom -> neg
+
+?atom: NATURAL
+     | DECIMAL
+     | "(" sum ")"
+     | atom "^" atom    -> pow
+     | hits
+
+CMP: ">" | ">=" | "<" | "<=" | "=" | "!=" | "≠"
+?hits: roll
+     | roll CMP  NATURAL       -> hits_cmp
+     | "$"? "E" POSINT         -> nb_easy
+     | "$"? "N" POSINT         -> nb_normal
+     | "$"? "H" POSINT         -> nb_hard
+
+# TODO: allow expressions here? do we want to support  (4+d3)d12 ?
+#       if so, need to rearrange a bit for things like "d6^2"
+?roll: [POSINT] _D POSINT
+     | [POSINT] _D POSINT "!" POSINT               -> roll_explode
+     | POSINT _D POSINT ("h"|"H"|"k"|"K") NATURAL  -> roll_highest
+     | POSINT _D POSINT ("l"|"L")  NATURAL         -> roll_lowest
+# should we allow combining highest/lowest/exploding?
+
+_D: "d" | "D"
