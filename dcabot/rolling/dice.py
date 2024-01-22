@@ -9,6 +9,7 @@ import lark
 with open(Path(__file__).parent / "dice.lark") as f:
     parser = lark.Lark(f)  # grammar apparently isn't LALR, not sure why not but oh well
 
+
 # transforms the parse tree into an abstract dice tree, classes below
 class DiceTreeExtractor(lark.Transformer):
     def POSINT(self, tok):
@@ -19,6 +20,18 @@ class DiceTreeExtractor(lark.Transformer):
 
     def DECIMAL(self, tok):
         return float(tok)
+
+    def pre_comment(self, args):
+        pre_comment, expr, post_comment = args
+        pre_comment = pre_comment.strip()  # probably an easy way to do in lark but eh
+        if post_comment:
+            post_comment = post_comment.strip()
+        return CommentedExpr(expr, pre_comment, post_comment)
+
+    def post_comment(self, args):
+        expr, post_comment = args
+        post_comment = post_comment.strip()
+        return CommentedExpr(expr, post_comment=post_comment)
 
     def roll(self, args):
         return DiceRoll(*args)
@@ -31,6 +44,9 @@ class DiceTreeExtractor(lark.Transformer):
 
     def roll_lowest(self, args):
         return DiceRollKeepLowest(*args)
+
+    def roll_reroll(self, args):
+        return DiceRollRerollLowest(*args)
 
     def hits_cmp(self, args):
         roll, cmp, thresh = args
@@ -149,6 +165,7 @@ class DiceTreeExtractor(lark.Transformer):
 
 transformer = DiceTreeExtractor()
 
+
 def get_dice_tree(spec):
     parse_tree = parser.parse(spec)
     if isinstance(parse_tree, lark.Token):  # trasform crashes, bug in lark I guess
@@ -173,7 +190,6 @@ def get_result_str(obj):
     return obj.result_str() if hasattr(obj, "result_str") else str(obj)
 
 
-
 class DiceRoll:
     def __init__(self, num, sides):
         if num is None:
@@ -187,32 +203,58 @@ class DiceRoll:
 
     def eval(self):
         self.results = [random.randint(1, self.sides) for _ in range(self.num)]
-        self.total = sum(self.results)
-        return sum(self.results)
+        self.inds_to_keep = frozenset(range(len(self.results)))
+        return self._set_total()
+
+
+    def _set_total(self):
+        self.total = sum(r for i, r in enumerate(self.results) if i in self.inds_to_keep)
+        return self.total
+
+    def format_single_roll(self, i, r):
+        return str(r) if i in self.inds_to_keep else f"~~{r}~~"
 
     def result_str(self):
         if not hasattr(self, "results"):
             raise ValueError("Roll the dice with eval() first")
-        if self.num == 1:
+        if len(self.results) == 1:
             return f"(**{self.results[0]}**)"
         else:
-            return f"({' + '.join(str(r) for r in self.results)} => **{self.total}**)"
+            bits = [self.format_single_roll(i, r) for i, r in enumerate(self.results)]
+            return f"({' + '.join(bits)} => **{self.total}**)"
 
 
 class ExplodingDiceRoll(DiceRoll):
-    def __init__(self, num, sides, explode_thresh):
+    def __init__(self, num, sides, explode_thresh, explosions_cap=100):
         super().__init__(num, sides)
         self.explode_thresh = explode_thresh
+        self.explosions_cap = explosions_cap
+        if self.explode_thresh < 2:
+            raise ValueError(
+                f"Must explode on at least 2 to avoid infinite dice...got {explode_thresh}"
+            )
 
     def __str__(self):
         return f"{super().__str__()} explode {self.explode_thresh}"
 
-    # TODO:
     def eval(self):
-        raise NotImplementedError()
+        new_results = [random.randint(1, self.sides) for _ in range(self.num)]
+        self.results = new_results.copy()
+        for explode_iter in range(self.explosions_cap):
+            # do any relevant games say "explode <= 10 dice" or something?
+            n_to_explode = sum(1 for r in new_results if r >= self.explode_thresh)
+            if n_to_explode == 0:
+                break
+            new_results = [random.randint(1, self.sides) for _ in range(n_to_explode)]
+            self.results.extend(new_results)
+        else:
+            pass  # could warn that we hit the explosions cap
 
-    def result_str(self):
-        raise NotImplementedError()
+        self.inds_to_keep = frozenset(range(len(self.results)))
+        return self._set_total()
+
+    def format_single_roll(self, i, r):
+        return f"_{r}_" if r >= self.explode_thresh else str(r)
 
 
 class DiceRollKeepHighest(DiceRoll):
@@ -223,12 +265,12 @@ class DiceRollKeepHighest(DiceRoll):
     def __str__(self):
         return f"{super().__str__()} highest {self.num_highest}"
 
-    # TODO:
     def eval(self):
-        raise NotImplementedError()
+        super().eval()
+        argsort = sorted(range(len(self.results)), key=self.results.__getitem__, reverse=True)
+        self.inds_to_keep = frozenset(argsort[: self.num_highest])
+        return self._set_total()
 
-    def result_str(self):
-        raise NotImplementedError()
 
 
 class DiceRollKeepLowest(DiceRoll):
@@ -239,12 +281,27 @@ class DiceRollKeepLowest(DiceRoll):
     def __str__(self):
         return f"{super().__str__()} lowest {self.num_lowest}"
 
-    # TODO:
     def eval(self):
-        raise NotImplementedError()
+        super().eval()
+        argsort = sorted(range(len(self.results)), key=self.results.__getitem__)
+        self.inds_to_keep = frozenset(argsort[: self.num_lowest])
+        return self._set_total()
 
-    def result_str(self):
-        raise NotImplementedError()
+
+class DiceRollRerollLowest(DiceRollKeepHighest):
+    def __init__(self, num, sides, num_reroll):
+        super().__init__(num, sides, num - num_reroll)
+        self.num_reroll = num_reroll
+
+    def __str__(self):
+        return f"{super().__str__()} reroll {self.num_lowest}"
+
+    def eval(self):
+        super().eval()
+        new = [random.randint(1, sides) for _ in range(self.num_reroll)]
+        self.inds_to_keep = self.inds_to_keep | range(len(self.results), len(self.results) + len(new))
+        self.results.extend(new)
+        return self._set_total()
 
 
 class Comparator(enum.StrEnum):
@@ -269,7 +326,7 @@ class NumHits:
     def eval(self):
         self.roll.eval()
         op = getattr(operator, self.comp.name.lower())
-        self.results = [op(r, self.thresh) for r in self.roll.results]
+        self.results = [i in self.roll.inds_to_keep and op(r, self.thresh) for i, r in enumerate(self.roll.results)]
         self.n_hits = sum(1 if is_hit else 0 for is_hit in self.results)
         return self.n_hits
 
@@ -278,11 +335,11 @@ class NumHits:
             raise ValueError("Roll the dice with eval() first")
 
         parts = []
-        for roll, is_hit in zip(self.roll.results, self.results):
+        for i, (r, is_hit) in enumerate(zip(self.roll.results, self.results)):
             if is_hit:
-                parts.append(f'**{roll}**')
+                parts.append(f"**{self.roll.format_single_roll(i, r)}**")
             else:
-                parts.append(f'~~{roll}~~')
+                parts.append(f"~~{r}~~")
         return f"({' '.join(parts)} => **{self.n_hits} hit{'' if self.n_hits == 1 else 's'}**)"
 
 
@@ -330,6 +387,26 @@ class MathOp:
             for arg in self.args
         )
 
+class CommentedExpr:
+    def __init__(self, roll, pre_comment=None, post_comment=None):
+        self.roll = roll
+        self.pre_comment = pre_comment
+        self.post_comment = post_comment
+
+    def __str__(self):
+        s = [str(self.roll)]
+        if pre_comment is not None:
+            s.insert(0, f"{pre_comment} : ")
+        if post_comment is not None:
+            s.append(f" # {post_comment}")
+        return ''.join(s)
+
+    def eval(self):
+        return get_eval(self.roll)
+
+    def result_str(self):
+        return get_result_str(self.roll)
+
 
 class Concat:
     def __init__(self, args):
@@ -340,7 +417,7 @@ class Concat:
         return ",  ".join(str(arg) for arg in self.args)
 
     def eval(self):
-        return [arg.eval() for arg in self.args]
+        return [get_eval(arg) for arg in self.args]
 
     def result_str(self):
         return ",  ".join(get_result_str(arg) for arg in self.args)

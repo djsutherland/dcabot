@@ -25,49 +25,63 @@ class Basics(commands.Cog):
     # https://github.com/Rapptz/RoboDanny/blob/master/cogs/admin.py
     @commands.command(hidden=True)
     @commands.is_owner()
-    async def load(self, ctx, *, module : str):
+    async def load(self, ctx, *, module: str):
         """Loads a module."""
         try:
             await self.bot.load_extension(module)
         except Exception as e:
-            await ctx.send('\N{PISTOL}')
-            await ctx.send('{}: {}'.format(type(e).__name__, e))
+            await ctx.message.add_reaction("\N{PISTOL}")
+            await ctx.send(f"```{type(e).__name__}: {e}```")
         else:
-            await ctx.send('\N{OK HAND SIGN}')
+            await ctx.message.add_reaction("\N{OK HAND SIGN}")
 
     @commands.command(hidden=True)
     @commands.is_owner()
-    async def unload(self, ctx, *, module : str):
+    async def unload(self, ctx, *, module: str):
         """Unloads a module."""
         try:
             await self.bot.unload_extension(module)
         except Exception as e:
-            await ctx.send('\N{PISTOL}')
-            await ctx.send('{}: {}'.format(type(e).__name__, e))
+            await ctx.message.add_reaction("\N{PISTOL}")
+            await ctx.send(f"```{type(e).__name__}: {e}```")
         else:
-            await ctx.send('\N{OK HAND SIGN}')
+            await ctx.message.add_reaction("\N{OK HAND SIGN}")
 
-    @commands.command(name='reload', hidden=True)
+    @commands.command(hidden=True)
     @commands.is_owner()
-    async def _reload(self, ctx, *, module : str):
+    async def reload(self, ctx, *, module: str):
         """Reloads a module."""
         try:
             await self.bot.unload_extension(module)
             await self.bot.load_extension(module)
         except Exception as e:
-            await ctx.send('\N{PISTOL}')
-            await ctx.send('{}: {}'.format(type(e).__name__, e))
+            await ctx.message.add_reaction("\N{PISTOL}")
+            await ctx.send((f"```{type(e).__name__}: {e}```"))
         else:
-            await ctx.send('\N{OK HAND SIGN}')
+            await ctx.message.add_reaction("\N{OK HAND SIGN}")
+
 
 
 class DCABot(commands.Bot):
     "Some helpers for Daemon Capture Academy."
 
-    def __init__(self, *, command_prefix="~", **kwargs):
+    def __init__(self, *, command_prefix="~", add_when_mentioned=True, noprefix_dms=True, **kwargs):
         intents = discord.Intents.default()
         intents.members = True
         intents.message_content = True
+
+
+        self.base_prefix = command_prefix
+        if noprefix_dms:
+            def command_prefix(bot, msg):
+                if isinstance(msg.channel, discord.channel.DMChannel):
+                    return ''
+                elif add_when_mentioned:
+                    return commands.when_mentioned(bot, msg) + [self.base_prefix]
+                else:
+                    return self.base_prefix
+        elif add_when_mentioned:
+            command_prefix = commands.when_mentioned_or(self.base_prefix)
 
         super().__init__(intents=intents, command_prefix=command_prefix, **kwargs)
         self.initial_extensions = ["dcabot.rolling"]
@@ -77,6 +91,12 @@ class DCABot(commands.Bot):
             tg.create_task(self.add_cog(Basics(self)))
             for ext in self.initial_extensions:
                 tg.create_task(self.load_extension(ext))
+
+            if self.base_prefix == '~':
+                # don't trigger if a message starts with ~~, i.e. is crossed out
+                @self.command(name='~', hidden=True)
+                async def noop(ctx):
+                    pass
 
     async def on_ready(self):
         logging.info(f"Logged in as {self.user} ({self.user.id})")

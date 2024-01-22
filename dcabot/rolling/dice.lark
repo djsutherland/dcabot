@@ -16,7 +16,14 @@ DECIMAL: NATURAL "." NATURAL? | "." NATURAL
       | "`" list "`"
       | "```" "\n"* list "\n"* "```"
 
-?list: ( sum (","|";"|"\n")+ )* sum
+?list: ( commented_expr (","|";"|"\n")+ )* commented_expr
+
+PRECOMMENT: /[^:#\n`]+/
+POSTCOMMENT: /[^\n`]+/
+
+?commented_expr: sum
+               | PRECOMMENT ":" sum [ "#" (POSTCOMMENT)? ]  -> pre_comment
+               | sum "#" [POSTCOMMENT]                      -> post_comment
 
 PLUSMINUS: "+" | "-"
 ?sum: (product PLUSMINUS)* product
@@ -42,10 +49,9 @@ CMP: ">" | ">=" | "<" | "<=" | "=" | "!=" | "≠"
 
 # TODO: allow expressions here? do we want to support  (4+d3)d12 ?
 #       if so, need to rearrange a bit for things like "d6^2"
-?roll: [POSINT] _D POSINT
-     | [POSINT] _D POSINT "!" POSINT               -> roll_explode
-     | POSINT _D POSINT ("h"|"H"|"k"|"K") NATURAL  -> roll_highest
-     | POSINT _D POSINT ("l"|"L")  NATURAL         -> roll_lowest
-# should we allow combining highest/lowest/exploding?
-
-_D: "d" | "D"
+?roll: [POSINT] "d"i POSINT
+     | [POSINT] "d"i POSINT ("!"|"explode"i|"exploding"i|"explode above"i) POSINT -> roll_explode
+     | POSINT "d"i POSINT ("h"i|"k"i|"highest"i|"keep"i|"keep highest"i) NATURAL  -> roll_highest
+     | POSINT "d"i POSINT ("l"i|"lowest"i|"keep lowest"i)  NATURAL                -> roll_lowest
+     | POSINT "d"i POSINT ("r"i|"reroll"i|"reroll lowest"i)  POSINT               -> roll_reroll
+# should we allow combining highest/lowest/exploding/reroll?
