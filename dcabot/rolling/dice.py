@@ -346,7 +346,7 @@ class NumHits:
             if is_hit:
                 parts.append(f"**{self.roll.format_single_roll(i, r)}**")
             else:
-                parts.append(f"~~{r}~~")
+                parts.append(f"~~{self.roll.format_single_roll(i, r)}~~")
         return f"({' '.join(parts)} => **{self.n_hits} hit{'' if self.n_hits == 1 else 's'}**)"
 
 
