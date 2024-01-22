@@ -48,7 +48,9 @@ class Rolling(commands.Cog):
             result = dice.get_eval(roll)
 
             if isinstance(roll, dice.Concat):
-                resp = "\n".join(self.format_result(r, res) for r, res in zip(roll.args, result))
+                resp = "\n".join(
+                    self.format_result(r, res) for r, res in zip(roll.args, result)
+                )
             else:
                 resp = self.format_result(roll, result)
 
@@ -73,9 +75,6 @@ class Rolling(commands.Cog):
                 m = m + f"\n```{e}```"
             await ctx.reply(m)
             raise e
-
-        
-
 
 
 async def setup(bot):

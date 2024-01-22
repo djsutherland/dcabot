@@ -206,9 +206,10 @@ class DiceRoll:
         self.inds_to_keep = frozenset(range(len(self.results)))
         return self._set_total()
 
-
     def _set_total(self):
-        self.total = sum(r for i, r in enumerate(self.results) if i in self.inds_to_keep)
+        self.total = sum(
+            r for i, r in enumerate(self.results) if i in self.inds_to_keep
+        )
         return self.total
 
     def format_single_roll(self, i, r):
@@ -267,10 +268,11 @@ class DiceRollKeepHighest(DiceRoll):
 
     def eval(self):
         super().eval()
-        argsort = sorted(range(len(self.results)), key=self.results.__getitem__, reverse=True)
+        argsort = sorted(
+            range(len(self.results)), key=self.results.__getitem__, reverse=True
+        )
         self.inds_to_keep = frozenset(argsort[: self.num_highest])
         return self._set_total()
-
 
 
 class DiceRollKeepLowest(DiceRoll):
@@ -299,7 +301,9 @@ class DiceRollRerollLowest(DiceRollKeepHighest):
     def eval(self):
         super().eval()
         new = [random.randint(1, sides) for _ in range(self.num_reroll)]
-        self.inds_to_keep = self.inds_to_keep | range(len(self.results), len(self.results) + len(new))
+        self.inds_to_keep = self.inds_to_keep | range(
+            len(self.results), len(self.results) + len(new)
+        )
         self.results.extend(new)
         return self._set_total()
 
@@ -326,7 +330,10 @@ class NumHits:
     def eval(self):
         self.roll.eval()
         op = getattr(operator, self.comp.name.lower())
-        self.results = [i in self.roll.inds_to_keep and op(r, self.thresh) for i, r in enumerate(self.roll.results)]
+        self.results = [
+            i in self.roll.inds_to_keep and op(r, self.thresh)
+            for i, r in enumerate(self.roll.results)
+        ]
         self.n_hits = sum(1 if is_hit else 0 for is_hit in self.results)
         return self.n_hits
 
@@ -387,6 +394,7 @@ class MathOp:
             for arg in self.args
         )
 
+
 class CommentedExpr:
     def __init__(self, roll, pre_comment=None, post_comment=None):
         self.roll = roll
@@ -399,7 +407,7 @@ class CommentedExpr:
             s.insert(0, f"{pre_comment} : ")
         if post_comment is not None:
             s.append(f" # {post_comment}")
-        return ''.join(s)
+        return "".join(s)
 
     def eval(self):
         return get_eval(self.roll)
