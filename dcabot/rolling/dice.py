@@ -1,4 +1,5 @@
 import enum
+import numbers
 import operator
 from pathlib import Path
 import random
@@ -370,11 +371,39 @@ class MathOp:
         if self.op == Op.POW and len(self.args) != 2:
             raise ValueError("Raising to a power needs exactly two arguments")
 
-    def __str__(self):
-        # TODO: special case - and /
-        return f" {self.op} ".join(
-            f"({arg})" if isinstance(arg, MathOp) else str(arg) for arg in self.args
-        )
+    def __str__(self, f=str):
+        parts = []
+        for i, a in enumerate(self.args):
+            if i != 0:
+                # TODO: special case for 1/x
+                if self.op == "+":
+                    if isinstance(a, numbers.Real) and a < 0:
+                        parts.append("-")
+                        a *= -1
+                    elif (
+                        isinstance(a, MathOp)
+                        and a.op == "*"
+                        and len(a.args) == 2
+                        and isinstance(a.args[0], numbers.Real)
+                        and a.args[0] < 0
+                    ):
+                        parts.append("-")
+                        if a.args[0] == -1:
+                            a = a.args[1]
+                        else:
+                            a = MathOp("*", [-a.args[0], a.args[1]])
+                    else:
+                        parts.append(self.op)
+                else:
+                    parts.append(self.op)
+
+            s = f(a)
+            parts.append(f"({s})" if isinstance(a, MathOp) else s)
+
+        return " ".join(parts)
+
+    def result_str(self):
+        return self.__str__(f=get_result_str)
 
     def eval(self):
         evaled_args = [get_eval(arg) for arg in self.args]
@@ -389,14 +418,6 @@ class MathOp:
             assert self.op == Op.POW
             a, b = evaled_args
             return a**b
-
-    def result_str(self):
-        return f" {self.op} ".join(
-            f"({get_result_str(arg)})"
-            if isinstance(arg, MathOp)
-            else get_result_str(arg)
-            for arg in self.args
-        )
 
 
 class CommentedExpr:
