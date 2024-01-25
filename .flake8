@@ -1,0 +1,12 @@
+[flake8]
+max-line-length = 88
+extend-ignore =
+    # space before colons
+    E203,
+    # module level import not at top of file - p obvious but sometimes needed
+    E402,
+    # linebreak before binary operator
+    W503,
+exclude =
+    venv,
+    .git

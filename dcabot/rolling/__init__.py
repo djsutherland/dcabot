@@ -1,4 +1,3 @@
-import discord
 from discord.ext import commands
 import lark
 
@@ -71,7 +70,7 @@ class Rolling(commands.Cog):
             )
             return
         except Exception as e:
-            m = "Something broke \N{LOUDLY CRYING FACE}\N{LOUDLY CRYING FACE}\N{LOUDLY CRYING FACE}"
+            m = "Something broke " + "\N{LOUDLY CRYING FACE}" * 3
             if str(e):
                 m = m + f"\n```{e}```"
             await ctx.reply(m)
