@@ -7,3 +7,6 @@ extend-ignore =
     E402,
     # linebreak before binary operator
     W503,
+exclude =
+    venv,
+    .git

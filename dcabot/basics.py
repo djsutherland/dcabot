@@ -29,7 +29,7 @@ class Basics(commands.Cog):
             await ctx.message.add_reaction("\N{PISTOL}")
             await ctx.send(f"```{type(e).__name__}: {e}```")
         else:
-            await ctx.message.add_reaction("\N{OK HAND SIGN}")
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     @commands.command(hidden=True)
     @commands.is_owner()
@@ -41,20 +41,23 @@ class Basics(commands.Cog):
             await ctx.message.add_reaction("\N{PISTOL}")
             await ctx.send(f"```{type(e).__name__}: {e}```")
         else:
-            await ctx.message.add_reaction("\N{OK HAND SIGN}")
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     @commands.command(hidden=True)
     @commands.is_owner()
     async def reload(self, ctx, *, module: str):
         """Reloads a module."""
         try:
-            await self.bot.unload_extension(module)
+            try:
+                await self.bot.unload_extension(module)
+            except commands.ExtensionNotLoaded:
+                await ctx.send(f"(FYI, `{module}` wasn't actually loaded yet)")
             await self.bot.load_extension(module)
         except Exception as e:
             await ctx.message.add_reaction("\N{PISTOL}")
             await ctx.send((f"```{type(e).__name__}: {e}```"))
         else:
-            await ctx.message.add_reaction("\N{OK HAND SIGN}")
+            await ctx.message.add_reaction("\N{WHITE HEAVY CHECK MARK}")
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):

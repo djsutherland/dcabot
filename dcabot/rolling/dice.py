@@ -175,7 +175,7 @@ def get_dice_tree(spec):
 
 
 ################################################################################
-### Abstract dice trees
+# Abstract dice trees
 
 
 def is_random(obj):
@@ -232,7 +232,8 @@ class ExplodingDiceRoll(DiceRoll):
         self.explosions_cap = explosions_cap
         if self.explode_thresh < 2:
             raise ValueError(
-                f"Must explode on at least 2 to avoid infinite dice...got {explode_thresh}"
+                "Must explode on at least 2 to avoid infinite dice..."
+                f"got {explode_thresh}"
             )
 
     def __str__(self):
@@ -300,7 +301,7 @@ class DiceRollRerollLowest(DiceRollKeepHighest):
 
     def eval(self):
         super().eval()
-        new = [random.randint(1, sides) for _ in range(self.num_reroll)]
+        new = [random.randint(1, self.sides) for _ in range(self.num_reroll)]
         self.inds_to_keep = self.inds_to_keep | range(
             len(self.results), len(self.results) + len(new)
         )
@@ -347,7 +348,10 @@ class NumHits:
                 parts.append(f"**{self.roll.format_single_roll(i, r)}**")
             else:
                 parts.append(f"~~{self.roll.format_single_roll(i, r)}~~")
-        return f"({' '.join(parts)} => **{self.n_hits} hit{'' if self.n_hits == 1 else 's'}**)"
+        all_parts = " ".join(parts)
+        return (
+            f"({all_parts} => **{self.n_hits} hit{'' if self.n_hits == 1 else 's'}**)"
+        )
 
 
 class Op(enum.StrEnum):
@@ -361,7 +365,7 @@ class MathOp:
         self.op = Op(op)
         self.args = args
         self.is_random = any(is_random(a) for a in args)
-        # ^ should always be True, otherwise would just be a number, but allowing otherwise
+        # ^ should always be True, or would just be a number, but allowing otherwise
 
         if self.op == Op.POW and len(self.args) != 2:
             raise ValueError("Raising to a power needs exactly two arguments")
@@ -403,10 +407,10 @@ class CommentedExpr:
 
     def __str__(self):
         s = [str(self.roll)]
-        if pre_comment is not None:
-            s.insert(0, f"{pre_comment} : ")
-        if post_comment is not None:
-            s.append(f" # {post_comment}")
+        if self.pre_comment is not None:
+            s.insert(0, f"{self.pre_comment} : ")
+        if self.post_comment is not None:
+            s.append(f" # {self.post_comment}")
         return "".join(s)
 
     def eval(self):

@@ -5,9 +5,6 @@ import discord
 from discord.ext import commands
 
 
-from .basics import Basics
-
-
 class DCABot(commands.Bot):
     "Some helpers for Daemon Capture Academy."
 
@@ -38,7 +35,11 @@ class DCABot(commands.Bot):
             command_prefix = commands.when_mentioned_or(self.base_prefix)
 
         super().__init__(intents=intents, command_prefix=command_prefix, **kwargs)
-        self.initial_extensions = ["dcabot.basics", "dcabot.rolling"]
+        self.initial_extensions = [
+            "dcabot.basics",
+            "dcabot.rolling",
+            "dcabot.spotlight",
+        ]
 
     async def setup_hook(self):
         async with asyncio.TaskGroup() as tg:
