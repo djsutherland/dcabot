@@ -38,7 +38,7 @@ class Spotlight(commands.Cog):
             m = m + f"\n```{exception}```"
         await ctx.reply(m)
 
-    async def get_spotlight(self, channel, message_limit=20):
+    async def get_spotlight(self, channel, message_limit=200):
         if channel in self._cache:
             return self._cache[channel]
 

@@ -5,6 +5,7 @@ from . import dice
 
 # TODO: handle message (line?) length cap
 
+
 class Rolling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
