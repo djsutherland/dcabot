@@ -22,12 +22,18 @@ class DiceTreeExtractor(lark.Transformer):
     def DECIMAL(self, tok):
         return float(tok)
 
-    def pre_comment(self, args):
+    def pre_post_comment(self, args):
         pre_comment, expr, post_comment = args
-        pre_comment = pre_comment.strip()  # probably an easy way to do in lark but eh
+        if pre_comment:
+            pre_comment = pre_comment.strip()  # probably an easy way to do in lark but eh
         if post_comment:
             post_comment = post_comment.strip()
-        return CommentedExpr(expr, pre_comment, post_comment)
+        return CommentedExpr(expr, pre_comment=pre_comment, post_comment=post_comment)
+
+    def pre_comment(self, args):
+        pre_comment, expr = args
+        pre_comment = pre_comment.strip()
+        return CommentedExpr(expr, pre_comment=pre_comment)
 
     def post_comment(self, args):
         expr, post_comment = args

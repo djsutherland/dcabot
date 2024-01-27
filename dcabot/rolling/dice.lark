@@ -12,18 +12,24 @@ NATURAL: "0"+ | POSINT
 DECIMAL: NATURAL "." NATURAL? | "." NATURAL
 
 
-?start: list
-      | "`" list "`"
-      | "```" "\n"* list "\n"* "```"
+?start: newline_list
+      | "`" newline_list "`"
+      | "```" "\n"* newline_list "\n"* "```"
 
-?list: ( commented_expr (","|";"|"\n")+ )* commented_expr
+?newline_list: list
+             | (prepostcommented_expr "\n"+)* prepostcommented_expr -> list
+
+?list: ( precommented_expr (","|";"|"\n")+ )* precommented_expr
 
 PRECOMMENT: /[^:#\n`]+/
 POSTCOMMENT: /[^\n`]+/
 
-?commented_expr: sum
-               | PRECOMMENT ":" sum [ "#" (POSTCOMMENT)? ]  -> pre_comment
-               | sum "#" [POSTCOMMENT]                      -> post_comment
+?prepostcommented_expr: precommented_expr
+    | [PRECOMMENT ":"] precommented_expr "#" POSTCOMMENT -> pre_post_comment
+    | [PRECOMMENT ":"] precommented_expr "#"             -> pre_post_comment
+
+?precommented_expr: sum
+                  | PRECOMMENT ":" sum -> pre_comment
 
 PLUSMINUS: "+" | "-"
 ?sum: (product PLUSMINUS)* product

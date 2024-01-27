@@ -59,7 +59,7 @@ class Rolling(commands.Cog):
             # TODO: underflow / other reactions
 
         except lark.UnexpectedInput as e:
-            formatted = e.get_context(spec, span=20)
+            formatted = e.get_context(spec, span=100)
             await ctx.reply(
                 f"""Sorry, I don't understand! I think the error might be here:
 
