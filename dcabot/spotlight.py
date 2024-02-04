@@ -89,7 +89,7 @@ class Spotlight(commands.Cog):
 
     async def find_participant(self, ctx, par):
         state = await self.get_spotlight(ctx.channel)
-        matches = [p for p in state.keys() if p.startswith(par)]
+        matches = [p for p in state.keys() if p.lower().startswith(par.lower())]
         if len(matches) > 1:
             await ctx.send(
                 f'Error: "{par}" could mean '
