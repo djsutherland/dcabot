@@ -24,6 +24,10 @@ SPOTLIGHT_HEADER = "__Spotlight checklist__"
 SHUTDOWN_MESSAGE = "Clearing the spotlight tracker; goodnight!"
 
 
+class NoSpotlightError(ValueError):
+    pass
+
+
 class Spotlight(commands.Cog):
     # this will remember stuff per channel, and recover it if the bot died
     # it's not safe for multiple simultaneous workers as-is
@@ -68,7 +72,7 @@ class Spotlight(commands.Cog):
             self._cache[channel] = state
             return state
 
-        raise ValueError("No spotlight found in this channel's recent history")
+        raise NoSpotlightError("No spotlight found in this channel's recent history")
 
     async def send_tracker(self, ctx, state, message=None):
         await ctx.send(
@@ -103,8 +107,12 @@ class Spotlight(commands.Cog):
     @commands.group(invoke_without_command=True)
     async def spotlight(self, ctx, *args):
         if not args:
-            state = await self.get_spotlight(ctx.channel)
-            await self.send_tracker(ctx, state)
+            try:
+                state = await self.get_spotlight(ctx.channel)
+            except NoSpotlightError:
+                await self.start(ctx)
+            else:
+                await self.send_tracker(ctx, state)
 
         elif len(args) == 1:
             return await self.mark(ctx, args[0])

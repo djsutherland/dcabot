@@ -25,7 +25,8 @@ class DiceTreeExtractor(lark.Transformer):
     def pre_post_comment(self, args):
         pre_comment, expr, post_comment = args
         if pre_comment:
-            pre_comment = pre_comment.strip()  # probably an easy way to do in lark but eh
+            # probably an easy way to do in lark but eh
+            pre_comment = pre_comment.strip()
         if post_comment:
             post_comment = post_comment.strip()
         return CommentedExpr(expr, pre_comment=pre_comment, post_comment=post_comment)
