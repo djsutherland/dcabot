@@ -186,7 +186,8 @@ class Spotlight(commands.Cog):
             state[par] = True
 
         if all(state.values()):
-            state = {p: False for p in state.keys()}
+            for p in state:
+                state[p] = False
             messages.append("Everyone's been checked; wrapping around.")
         return await self.send_tracker(ctx, state, message="\n".join(messages))
 
