@@ -104,7 +104,7 @@ class Spotlight(commands.Cog):
         (par,) = matches
         return par
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True, aliases=["sp"])
     async def spotlight(self, ctx, *args):
         if not args:
             try:
