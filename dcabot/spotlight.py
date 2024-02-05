@@ -75,6 +75,7 @@ class Spotlight(commands.Cog):
         raise NoSpotlightError("No spotlight found in this channel's recent history")
 
     async def send_tracker(self, ctx, state, message=None):
+        self._cache[ctx.channel] = state  # be safe
         await ctx.send(
             message,
             embed=discord.Embed(
@@ -141,7 +142,10 @@ class Spotlight(commands.Cog):
     @spotlight.command()
     async def add(self, ctx, *participants):
         "Add some new participants to the tracker."
-        state = await self.get_spotlight(ctx.channel)
+        try:
+            state = await self.get_spotlight(ctx.channel)
+        except NoSpotlightError:
+            state = self._cache[ctx.channel] = {}
 
         # TODO: refuse to let one person be prefix of another? that'd break everything
 
