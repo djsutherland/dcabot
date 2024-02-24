@@ -22,7 +22,7 @@ class Rolling(commands.Cog):
         result_str = dice.get_result_str(roll)
 
         # TODO: prettier
-        s = f"{roll}   ::   {result_str}   =>   got **{result}**"
+        s = f"{roll}    ::    {result_str}    ↠    **{result}**"
         if pre_comment:
             s = f"{pre_comment}:   {s}"
         if post_comment:

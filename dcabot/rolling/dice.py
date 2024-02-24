@@ -207,7 +207,7 @@ class DiceRoll:
         self.is_random = True
 
     def __str__(self):
-        return f"{self.num}d{self.sides}"
+        return f"d{self.sides}" if self.num == 1 else f"{self.num}d{self.sides}"
 
     def eval(self):
         self.results = [random.randint(1, self.sides) for _ in range(self.num)]
