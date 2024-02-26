@@ -147,20 +147,23 @@ class Spotlight(commands.Cog):
         except NoSpotlightError:
             state = self._cache[ctx.channel] = {}
 
-        # TODO: refuse to let one person be prefix of another? that'd break everything
+        # TODO: refuse to let one person be prefix of another?
+        #       that'd break everything...
 
         to_add = []
         messages = []
         for p in participants:
             if p in state:
                 messages.append(
-                    f"Warning: {maybe_quote(p)} was already in the tracker, ignoring."
+                    f"Warning: {maybe_quote(p)} was already "
+                    "in the tracker, ignoring."
                 )
             else:
                 to_add.append(p)
 
         if (n := len(state) + len(to_add)) > 15:
-            return await ctx.send(f"{n} is too many spotlight participants, sorry....")
+            msg = f"{n} is too many spotlight participants, sorry...."
+            return await ctx.send(msg)
 
         for p in to_add:
             state[p] = False
