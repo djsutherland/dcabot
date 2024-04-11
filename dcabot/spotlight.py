@@ -2,6 +2,7 @@ from collections import OrderedDict
 import logging
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from .utils import LRUCache
@@ -30,7 +31,7 @@ class NoSpotlightError(ValueError):
 
 class Spotlight(commands.Cog):
     # this will remember stuff per channel, and recover it if the bot died
-    # it's not safe for multiple simultaneous workers as-is
+    # it's not safe for multiple simultaneous workers (for the same channel) as-is
     def __init__(self, bot, cache_size=128):
         self.bot = bot
         self._cache = LRUCache(cache_size)
@@ -105,7 +106,7 @@ class Spotlight(commands.Cog):
         (par,) = matches
         return par
 
-    @commands.group(invoke_without_command=True, aliases=["sp"])
+    @commands.hybrid_group(invoke_without_command=True, aliases=["sp"])
     async def spotlight(self, ctx, *args):
         if not args:
             try:
@@ -127,8 +128,22 @@ class Spotlight(commands.Cog):
         self._cache[ctx.channel] = {}
         await ctx.send(SHUTDOWN_MESSAGE)
 
+    # would be reallly nice to use a decorator and *participants,
+    # but can't figure out how to get the annotations to work there
+
     @spotlight.command(aliases=["on", "begin"])
-    async def start(self, ctx, *participants):
+    async def start(
+        self,
+        ctx,
+        participant1=None,
+        participant2=None,
+        participant3=None,
+        participant4=None,
+        participant5=None,
+        participant6=None,
+        participant7=None,
+        participant8=None,
+    ):
         """
         Start a spotlight tracker.
         You can set participants directly, or add them later.
@@ -140,12 +155,38 @@ class Spotlight(commands.Cog):
         await self.add(ctx, *participants)
 
     @spotlight.command()
-    async def add(self, ctx, *participants):
+    async def add(
+        self,
+        ctx,
+        participant1,
+        participant2=None,
+        participant3=None,
+        participant4=None,
+        participant5=None,
+        participant6=None,
+        participant7=None,
+        participant8=None,
+    ):
         "Add some new participants to the tracker."
         try:
             state = await self.get_spotlight(ctx.channel)
         except NoSpotlightError:
             state = self._cache[ctx.channel] = {}
+
+        participants = [
+            p
+            for p in [
+                participant1,
+                participant2,
+                participant3,
+                participant4,
+                participant5,
+                participant6,
+                participant7,
+                participant8,
+            ]
+            if p
+        ]
 
         # TODO: refuse to let one person be prefix of another?
         #       that'd break everything...
@@ -169,13 +210,44 @@ class Spotlight(commands.Cog):
             state[p] = False
         await self.send_tracker(ctx, state, message="\n".join(messages))
 
+    async def part_auto(self, interaction, current):
+        state = await self.get_spotlight(interaction.channel)
+        return [app_commands.Choice(name=p, value=p) for p in state.keys() if current.lower() in p.lower()]
+
     @spotlight.command()
-    async def mark(self, ctx, *participants):
+    @app_commands.autocomplete(participant1=part_auto, participant2=part_auto, participant3=part_auto, participant4=part_auto, participant5=part_auto, participant6=part_auto, participant7=part_auto, participant8=part_auto)
+    async def mark(
+        self,
+        ctx,
+        participant1 : str,
+        participant2 : str =None,
+        participant3 : str =None,
+        participant4 : str =None,
+        participant5 : str =None,
+        participant6 : str =None,
+        participant7 : str =None,
+        participant8 : str =None,
+    ):
         """
         Check some participants off.
         If you're just doing one, you can just do `spotlight [name]`.
         """
         state = await self.get_spotlight(ctx.channel)
+
+        participants = [
+            p
+            for p in [
+                participant1,
+                participant2,
+                participant3,
+                participant4,
+                participant5,
+                participant6,
+                participant7,
+                participant8,
+            ]
+            if p
+        ]
 
         to_mark = []
         messages = []
@@ -199,11 +271,38 @@ class Spotlight(commands.Cog):
         return await self.send_tracker(ctx, state, message="\n".join(messages))
 
     @spotlight.command(aliases=["uncheck", "reset"])
-    async def clear(self, ctx, *participants):
+    @app_commands.autocomplete(participant1=part_auto, participant2=part_auto, participant3=part_auto, participant4=part_auto, participant5=part_auto, participant6=part_auto, participant7=part_auto, participant8=part_auto)
+    async def clear(
+        self,
+        ctx,
+        participant1=None,
+        participant2=None,
+        participant3=None,
+        participant4=None,
+        participant5=None,
+        participant6=None,
+        participant7=None,
+        participant8=None,
+    ):
         """
         Uncheck some participants (default all).
         """
         state = await self.get_spotlight(ctx.channel)
+
+        participants = [
+            p
+            for p in [
+                participant1,
+                participant2,
+                participant3,
+                participant4,
+                participant5,
+                participant6,
+                participant7,
+                participant8,
+            ]
+            if p
+        ]
 
         warn_on_unchecked = True
         if not participants:
@@ -227,10 +326,36 @@ class Spotlight(commands.Cog):
         return await self.send_tracker(ctx, state, message="\n".join(messages))
 
     @spotlight.command()
-    async def remove(self, ctx, *participants):
+    @app_commands.autocomplete(participant1=part_auto, participant2=part_auto, participant3=part_auto, participant4=part_auto, participant5=part_auto, participant6=part_auto, participant7=part_auto, participant8=part_auto)
+    async def remove(
+        self,
+        ctx,
+        participant1,
+        participant2=None,
+        participant3=None,
+        participant4=None,
+        participant5=None,
+        participant6=None,
+        participant7=None,
+        participant8=None,
+    ):
         "Delete some participants from the tracker."
         state = await self.get_spotlight(ctx.channel)
 
+        participants = [
+            p
+            for p in [
+                participant1,
+                participant2,
+                participant3,
+                participant4,
+                participant5,
+                participant6,
+                participant7,
+                participant8,
+            ]
+            if p
+        ]
         for p in participants:
             try:
                 par = await self.find_participant(ctx, p)
@@ -242,6 +367,7 @@ class Spotlight(commands.Cog):
         return await self.send_tracker(ctx, state)
 
     @spotlight.command()
+    @app_commands.autocomplete(old_name=part_auto)
     async def rename(self, ctx, old_name, new_name):
         "Rename someone."
         state = await self.get_spotlight(ctx.channel)
